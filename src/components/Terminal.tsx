@@ -9,14 +9,14 @@ interface TerminalItem {
 }
 
 const socialLinks: TerminalItem[] = [
-  { name: 'instagram', url: 'https://instagram.com/builtbywin', type: 'social', color: 'var(--color-term-branch)' },
-  { name: 'youtube', url: 'https://youtube.com/@builtbywin', type: 'social', color: 'var(--color-term-orange)' },
-  { name: 'github', url: 'https://github.com/builtby-win', type: 'social', color: 'var(--color-term-fg)' },
+  { name: 'instagram', url: 'https://instagram.com/winnieletsgo', type: 'social', color: 'var(--color-term-branch)', icon: '📷' },
+  { name: 'youtube', url: 'https://youtube.com/@winnieletsgo', type: 'social', color: 'var(--color-term-orange)', icon: '▶️' },
+  { name: 'github', url: 'https://github.com/snoolord', type: 'social', color: 'var(--color-term-fg)', icon: '⚙️' },
 ];
 
 const apps: TerminalItem[] = [
-  { name: 'back2vibing', url: 'https://back2vibing.com', type: 'app', color: 'var(--color-term-dir)' },
-  { name: 'import-magic', url: 'https://import-magic.com', type: 'app', color: 'var(--color-term-link)' },
+  // { name: 'back2vibing', url: 'https://back2vibing.com', type: 'app', color: 'var(--color-term-dir)', icon: '🎵' },
+  { name: 'import-magic', url: 'https://importmagic.app', type: 'app', color: 'var(--color-term-link)', icon: '✨' },
 ];
 
 const allItems = [...socialLinks, ...apps];
@@ -101,6 +101,7 @@ export default function Terminal() {
                 style={{ color: item.color }}
                 tabIndex={-1}
               >
+                {item.icon && <span className="mr-2">{item.icon}</span>}
                 {item.name}
               </button>
             );
@@ -128,6 +129,7 @@ export default function Terminal() {
                 style={{ color: item.color }}
                 tabIndex={-1}
               >
+                {item.icon && <span className="mr-2">{item.icon}</span>}
                 {item.name}
               </button>
             );
