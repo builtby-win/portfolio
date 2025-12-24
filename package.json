@@ -10,7 +10,6 @@
     "deploy": "astro build && wrangler pages deploy"
   },
   "dependencies": {
-    "@astrojs/cloudflare": "^12.5.1",
     "@astrojs/react": "^4.2.1",
     "@tailwindcss/vite": "^4.1.4",
     "@types/react": "^19.1.8",

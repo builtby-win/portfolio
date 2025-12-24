@@ -6,17 +6,18 @@ interface TerminalItem {
   type: 'social' | 'app';
   icon?: string;
   color?: string;
+  description?: string;
 }
 
 const socialLinks: TerminalItem[] = [
-  { name: 'instagram', url: 'https://instagram.com/winnieletsgo', type: 'social', color: 'var(--color-term-branch)', icon: '📷' },
-  { name: 'youtube', url: 'https://youtube.com/@winnieletsgo', type: 'social', color: 'var(--color-term-orange)', icon: '▶️' },
-  { name: 'github', url: 'https://github.com/snoolord', type: 'social', color: 'var(--color-term-fg)', icon: '⚙️' },
+  { name: 'instagram', url: 'https://instagram.com/winnieletsgo', type: 'social', color: 'var(--color-term-branch)', icon: '📷', description: 'short form video about development' },
+  { name: 'youtube', url: 'https://youtube.com/@winnieletsgo', type: 'social', color: 'var(--color-term-orange)', icon: '▶️', description: 'long form videos about life' },
+  { name: 'github', url: 'https://github.com/snoolord', type: 'social', color: 'var(--color-term-fg)', icon: '⚙️', description: 'my public repositories' },
 ];
 
 const apps: TerminalItem[] = [
   // { name: 'back2vibing', url: 'https://back2vibing.com', type: 'app', color: 'var(--color-term-dir)', icon: '🎵' },
-  { name: 'import-magic', url: 'https://importmagic.app', type: 'app', color: 'var(--color-term-link)', icon: '✨' },
+  { name: 'import-magic', url: 'https://importmagic.app', type: 'app', color: 'var(--color-term-link)', icon: '✨', description: 'a file transfer app like shotput pro or hedge offshoot' },
 ];
 
 const allItems = [...socialLinks, ...apps];
@@ -78,12 +79,20 @@ export default function Terminal() {
         <span className="ml-2" style={{ color: 'var(--color-term-fg-muted)' }}>git:(</span>
         <span style={{ color: 'var(--color-term-branch)' }}>main</span>
         <span style={{ color: 'var(--color-term-fg-muted)' }}>)</span>
-        <span className="ml-2">ls -la</span>
+        <span className="ml-2">cd</span>
+        {selectedIndex !== null && (
+          <span className="ml-1" style={{ color: allItems[selectedIndex].color }}>
+            {allItems[selectedIndex].name}
+          </span>
+        )}
+        <span
+          className={`inline-block w-2 h-5 ml-1 align-middle ${showCursor ? 'bg-[var(--color-term-fg)]' : 'bg-transparent'}`}
+        />
       </div>
 
       {/* Socials section */}
       <div className="mb-6">
-        <div className="text-[var(--color-term-fg-muted)] mb-2 text-sm">drwxr-xr-x  socials/</div>
+        <div className="text-[var(--color-term-fg-muted)] mb-2 text-sm">socials/</div>
         <div className="flex flex-wrap gap-x-8 gap-y-2 pl-4">
           {socialLinks.map((item, idx) => {
             const globalIndex = idx;
@@ -111,7 +120,7 @@ export default function Terminal() {
 
       {/* Apps section */}
       <div className="mb-8">
-        <div className="text-[var(--color-term-fg-muted)] mb-2 text-sm">drwxr-xr-x  apps/</div>
+        <div className="text-[var(--color-term-fg-muted)] mb-2 text-sm">apps/</div>
         <div className="flex flex-wrap gap-x-8 gap-y-2 pl-4">
           {apps.map((item, idx) => {
             const globalIndex = socialLinks.length + idx;
@@ -137,31 +146,19 @@ export default function Terminal() {
         </div>
       </div>
 
-      {/* Input line with blinking cursor */}
-      <div className="mt-4">
-        <span style={{ color: 'var(--color-term-prompt)' }}>→</span>
-        <span className="ml-2">builtby.win</span>
-        <span className="ml-2" style={{ color: 'var(--color-term-fg-muted)' }}>git:(</span>
-        <span style={{ color: 'var(--color-term-branch)' }}>main</span>
-        <span style={{ color: 'var(--color-term-fg-muted)' }}>)</span>
-        <span className="ml-2">
-          {selectedIndex !== null && (
-            <span style={{ color: 'var(--color-term-fg-muted)' }}>
-              cd {allItems[selectedIndex].name}
-            </span>
-          )}
-          <span
-            className={`inline-block w-2 h-5 ml-1 align-middle ${showCursor ? 'bg-[var(--color-term-fg)]' : 'bg-transparent'}`}
-          />
-        </span>
-      </div>
+      {/* Description */}
+      {selectedIndex !== null && allItems[selectedIndex].description && (
+        <div className="mt-4 text-[var(--color-term-fg-muted)] text-sm">
+          {allItems[selectedIndex].description}
+        </div>
+      )}
 
       {/* Instructions */}
       <div className="mt-12 text-[var(--color-term-fg-muted)] text-sm">
         <span className="opacity-60">Press</span>
         <kbd className="mx-1 px-1.5 py-0.5 bg-[var(--color-term-bg-lighter)] rounded text-xs">Tab</kbd>
         <span className="opacity-60">to navigate,</span>
-        <kbd className="mx-1 px-1.5 py-0.5 bg-[var(--color-term-bg-lighter)] rounded text-xs">Enter</kbd>
+        <kbd className="mx-1 px-1.5 py-0.5 bg-[var(--color-term-bg-lighter)] rounded text-xs">Enter/Click</kbd>
         <span className="opacity-60">to open</span>
       </div>
     </div>
