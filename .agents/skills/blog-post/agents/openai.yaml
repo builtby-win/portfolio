@@ -1,0 +1,4 @@
+interface:
+  display_name: "Blog Post"
+  short_description: "Draft blog posts in Winston’s builder voice"
+  default_prompt: "Use $blog-post to draft or revise a concise blog post in Winston’s lowercase builder voice."

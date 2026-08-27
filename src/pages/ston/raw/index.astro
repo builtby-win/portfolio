@@ -1,0 +1,116 @@
+---
+import { getCollection } from 'astro:content';
+import BlogLayout from '../../../layouts/BlogLayout.astro';
+
+const isDev = import.meta.env.DEV;
+const notes = (await getCollection('raw', ({ data }) => isDev || !data.draft))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+const formatDate = (date: Date) => {
+  return date.toISOString().split('T')[0];
+};
+---
+
+<BlogLayout
+  title="raw notes"
+  description="short notes: referral links, tool discounts, and other scraps that are not full blog posts."
+  pathSegments={[{ name: 'raw', href: null }]}
+  backHref="/ston"
+>
+  <header class="blog-header">
+    <h1>raw/</h1>
+    <p class="blog-description">how to actually use the referral links. not a coupon dump.</p>
+  </header>
+
+  {notes.length === 0 ? (
+    <p class="no-posts">no notes yet</p>
+  ) : (
+    <ul class="post-list">
+      {notes.map((note) => {
+        const dateStr = formatDate(note.data.date);
+        return (
+          <li class="post-item">
+            <a href={`/ston/raw/${note.id}/`} class="post-link">
+              <span class="post-title">{note.data.title}</span>
+              <span class="post-separator"></span>
+              <time class="post-date" datetime={dateStr}>{dateStr}</time>
+            </a>
+            {note.data.description && (
+              <p class="post-description">{note.data.description}</p>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  )}
+</BlogLayout>
+
+<style>
+  .blog-header {
+    margin-bottom: 3rem;
+  }
+
+  .blog-header h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--color-term-dir);
+    margin: 0 0 0.5rem 0;
+  }
+
+  .blog-description {
+    color: var(--color-term-fg-muted);
+    margin: 0;
+  }
+
+  .post-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .post-item {
+    margin: 0;
+  }
+
+  .post-link {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .post-title {
+    color: var(--color-term-link);
+  }
+
+  .post-link:hover .post-title {
+    text-decoration: underline;
+  }
+
+  .post-separator {
+    flex: 1;
+    border-bottom: 1px dotted var(--color-term-bg-lighter);
+    min-width: 1rem;
+    transform: translateY(-0.35em);
+  }
+
+  .post-date {
+    color: var(--color-term-fg-muted);
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+
+  .post-description {
+    color: var(--color-term-fg-muted);
+    font-size: 0.9rem;
+    margin: 0.35rem 0 0;
+  }
+
+  .no-posts {
+    color: var(--color-term-fg-muted);
+  }
+</style>

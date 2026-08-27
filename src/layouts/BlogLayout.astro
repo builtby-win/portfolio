@@ -23,6 +23,8 @@ const {
   backHref = '/ston',
   wide = false,
 } = Astro.props
+
+const canonical = new URL(Astro.url.pathname, Astro.site ?? 'https://builtby.win').href
 ---
 
 <!doctype html>
@@ -40,12 +42,15 @@ const {
     <title>{title} | ston</title>
     <meta name="title" content={`${title} | ston`} />
     <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
 
     <meta property="og:type" content="article" />
+    <meta property="og:url" content={canonical} />
     <meta property="og:title" content={`${title} | ston`} />
     <meta property="og:description" content={description} />
 
     <meta property="twitter:card" content="summary" />
+    <meta property="twitter:url" content={canonical} />
     <meta property="twitter:title" content={`${title} | ston`} />
     <meta property="twitter:description" content={description} />
   </head>

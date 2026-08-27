@@ -16,6 +16,22 @@ const posts = (await getCollection('blog', ({ data }) => !data.draft))
       url: `/ston/blog/${dateStr}/${post.id}`,
     }
   })
+
+const rawNotes = (await getCollection('raw', ({ data }) => !data.draft))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+  .map((note) => ({
+    title: note.data.title,
+    url: `/ston/raw/${note.id}/`,
+  }))
+
+const crawlLinks = [
+  { href: '/ston/about/', label: 'about' },
+  { href: '/ston/blog/', label: 'blog' },
+  { href: '/ston/raw/', label: 'raw notes' },
+  ...rawNotes.map((note) => ({ href: note.url, label: note.title })),
+  { href: '/ston/apps/', label: 'apps' },
+  { href: '/ston/resume/', label: 'resume' },
+]
 ---
 
 <!doctype html>
@@ -38,17 +54,37 @@ const posts = (await getCollection('blog', ({ data }) => !data.draft))
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://builtby.win" />
+    <link rel="canonical" href="https://builtby.win/ston/" />
+    <meta property="og:url" content="https://builtby.win/ston/" />
     <meta property="og:title" content="builtby.win" />
     <meta property="og:description" content="Apps and tools built by Winston" />
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://builtby.win" />
+    <meta property="twitter:url" content="https://builtby.win/ston/" />
     <meta property="twitter:title" content="builtby.win" />
     <meta property="twitter:description" content="Apps and tools built by Winston" />
   </head>
   <body>
+    <nav class="crawl-nav" aria-label="site pages">
+      {crawlLinks.map((link) => (
+        <a href={link.href}>{link.label}</a>
+      ))}
+    </nav>
     <Terminal client:load blogPosts={posts} />
   </body>
 </html>
+
+<style>
+  .crawl-nav {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+</style>

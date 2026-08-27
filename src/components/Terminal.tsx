@@ -27,6 +27,13 @@ const sectionHeaders: TerminalItem[] = [
     isInternal: true,
   },
   {
+    name: 'referrals/',
+    url: '/ston/raw',
+    type: 'header',
+    color: 'var(--color-term-fg-muted)',
+    isInternal: true,
+  },
+  {
     name: 'blog/',
     url: '/ston/blog',
     type: 'header',
@@ -184,6 +191,26 @@ const misc: TerminalItem[] = [
   },
 ]
 
+
+const referrals: TerminalItem[] = [
+  {
+    name: 'opencode go $5',
+    url: 'https://opencode.ai/go?ref=N38MF3HBV5',
+    type: 'page',
+    color: 'var(--color-term-link)',
+    icon: <HiDocumentText />,
+    description: 'we both get $5 usage credit on go',
+  },
+  {
+    name: 'z.ai glm 10% off',
+    url: 'https://z.ai/subscribe?ic=BLT9B4XI8A',
+    type: 'page',
+    color: 'var(--color-term-dir)',
+    icon: <HiDocumentText />,
+    description: '10% off first glm coding order',
+  },
+]
+
 const pinned: TerminalItem[] = [
   {
     name: 'about',
@@ -263,11 +290,12 @@ export default function Terminal({ blogPosts = [] }: TerminalProps) {
   const sections = useMemo<TerminalSection[]>(
     () => [
       { header: sectionHeaders[0], items: pinned },
-      { header: sectionHeaders[1], items: blogItems },
-      { header: sectionHeaders[2], items: socialLinks },
-      { header: sectionHeaders[3], items: apps },
-      { header: sectionHeaders[4], items: repos },
-      { header: sectionHeaders[5], items: misc },
+      { header: sectionHeaders[1], items: referrals },
+      { header: sectionHeaders[2], items: blogItems },
+      { header: sectionHeaders[3], items: socialLinks },
+      { header: sectionHeaders[4], items: apps },
+      { header: sectionHeaders[5], items: repos },
+      { header: sectionHeaders[6], items: misc },
     ],
     [blogItems],
   )
@@ -278,32 +306,30 @@ export default function Terminal({ blogPosts = [] }: TerminalProps) {
     [sections],
   )
 
+  // Derived per-section indices — single source of truth so adding a section never desyncs
+  const sectionMeta = useMemo(() => {
+    let cursor = 0
+    return sections.map((section) => {
+      const headerIndex = cursor
+      const itemStartIndex = cursor + 1
+      const itemEndIndex = itemStartIndex + section.items.length
+      const meta = { section, headerIndex, itemStartIndex, itemEndIndex }
+      cursor = itemEndIndex
+      return meta
+    })
+  }, [sections])
+
   // Get the full path including section prefix for the selected item
   const getItemPath = useCallback(
     (index: number) => {
       const item = allItems[index]
-
-      // Find which section this item belongs to
-      let cursor = 0
-
-      for (const section of sections) {
-        if (index === cursor) {
-          return section.header.name
-        }
-
-        const itemStartIndex = cursor + 1
-        const itemEndIndex = itemStartIndex + section.items.length
-
-        if (index >= itemStartIndex && index < itemEndIndex) {
-          return section.header.name + item.name
-        }
-
-        cursor = itemEndIndex
+      for (const { section, headerIndex, itemStartIndex, itemEndIndex } of sectionMeta) {
+        if (index === headerIndex) return section.header.name
+        if (index >= itemStartIndex && index < itemEndIndex) return section.header.name + item.name
       }
-
       return item.name
     },
-    [allItems, sections],
+    [allItems, sectionMeta],
   )
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -332,25 +358,14 @@ export default function Terminal({ blogPosts = [] }: TerminalProps) {
     if (!normalizedSearchQuery) return filteredIndices
 
     const visible = new Set(filteredIndices)
-    let nextHeaderIndex = 0
-
-    for (const section of sections) {
-      const headerIndex = nextHeaderIndex
-      const itemStartIndex = headerIndex + 1
-      const itemEndIndex = itemStartIndex + section.items.length
+    for (const { headerIndex, itemStartIndex, itemEndIndex } of sectionMeta) {
       const hasVisibleChild = filteredIndices.some(
         (index) => index >= itemStartIndex && index < itemEndIndex,
       )
-
-      if (hasVisibleChild) {
-        visible.add(headerIndex)
-      }
-
-      nextHeaderIndex = itemEndIndex
+      if (hasVisibleChild) visible.add(headerIndex)
     }
-
     return Array.from(visible).sort((a, b) => a - b)
-  }, [filteredIndices, normalizedSearchQuery, sections])
+  }, [filteredIndices, normalizedSearchQuery, sectionMeta])
 
   const visibleIndexSet = useMemo(() => new Set(visibleIndices), [visibleIndices])
 
@@ -545,371 +560,101 @@ export default function Terminal({ blogPosts = [] }: TerminalProps) {
 
       {/* Sections container - aligned with prompt */}
       <div className="pl-5 min-h-[28rem]">
-        {/* Pinned section */}
-        <div className={visibleIndexSet.has(0) ? 'mb-6' : 'hidden'}>
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-            {(() => {
-              const headerIndex = 0 // pinned/ is at index 0
-              const isHeaderSelected = selectedIndex === headerIndex
-              return (
-                <button
-                  type="button"
-                  onClick={(e) => handleItemClick(e, sectionHeaders[0], headerIndex)}
-                  onMouseEnter={() => !isMobile && handleItemHover(headerIndex)}
-                  onFocus={() => !isMobile && handleItemHover(headerIndex)}
-                  className={`
-									transition-all duration-100 outline-none font-medium
-									${isHeaderSelected ? 'ring-2 ring-[var(--color-term-selection-border)] bg-[var(--color-term-selection)] px-2 -mx-2 rounded text-[var(--color-term-link)]' : 'text-[var(--color-term-link)] hover:text-[var(--color-term-purple)] hover:underline'}
-									${visibleIndexSet.has(headerIndex) ? '' : 'hidden'}
-								`}
-                  tabIndex={-1}
-                >
-                  pinned/
-                </button>
-              )
-            })()}
-            {pinned.map((item, idx) => {
-              const globalIndex = 1 + idx // after pinned/ header
-              const isSelected = selectedIndex === globalIndex
-              return (
-                <button
-                  type="button"
-                  key={item.url}
-                  onClick={(e) => handleItemClick(e, item, globalIndex)}
-                  onMouseEnter={() => !isMobile && handleItemHover(globalIndex)}
-                  onFocus={() => !isMobile && handleItemHover(globalIndex)}
-                  className={`
-									text-left transition-all duration-100 outline-none flex items-center
-									${isSelected ? 'ring-2 ring-[var(--color-term-selection-border)] bg-[var(--color-term-selection)] px-2 -mx-2 rounded' : ''}
-									${visibleIndexSet.has(globalIndex) ? '' : 'hidden'}
-								`}
-                  style={{ color: item.color }}
-                  tabIndex={-1}
-                >
-                  {item.icon && <span className="mr-2 inline-flex">{item.icon}</span>}
-                  {item.name}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Blog section */}
-        <div className={visibleIndexSet.has(1 + pinned.length) ? 'mb-6' : 'hidden'}>
-          <div className="flex items-start gap-x-2">
-            {(() => {
-              const headerIndex = 1 + pinned.length // blog/ header index
-              const isHeaderSelected = selectedIndex === headerIndex
-              return (
-                <button
-                  type="button"
-                  onClick={(e) => handleItemClick(e, sectionHeaders[1], headerIndex)}
-                  onMouseEnter={() => !isMobile && handleItemHover(headerIndex)}
-                  onFocus={() => !isMobile && handleItemHover(headerIndex)}
-                  className={`
-									transition-all duration-100 outline-none font-medium shrink-0
-									${isHeaderSelected ? 'ring-2 ring-[var(--color-term-selection-border)] bg-[var(--color-term-selection)] px-2 -mx-2 rounded text-[var(--color-term-link)]' : 'text-[var(--color-term-link)] hover:text-[var(--color-term-purple)] hover:underline'}
-									${visibleIndexSet.has(headerIndex) ? '' : 'hidden'}
-								`}
-                  tabIndex={-1}
-                >
-                  blog/
-                </button>
-              )
-            })()}
-            <div className="flex flex-col gap-y-1">
-              {blogItems.map((item, idx) => {
-                const globalIndex = 1 + pinned.length + 1 + idx // starts after pinned section + blog/ header
-                const isSelected = selectedIndex === globalIndex
-                return (
+        {sectionMeta.map(({ section, headerIndex, itemStartIndex }, sectionIdx) => {
+          const isLast = sectionIdx === sectionMeta.length - 1
+          const isBlog = section.header.name === 'blog/'
+          const isHeaderSelected = selectedIndex === headerIndex
+          const sectionVisible = visibleIndexSet.has(headerIndex)
+          return (
+            <div
+              key={section.header.name}
+              className={sectionVisible ? (isLast ? 'mb-8' : 'mb-6') : 'hidden'}
+            >
+              {isBlog ? (
+                <div className="flex items-start gap-x-2">
                   <button
                     type="button"
-                    key={item.url}
-                    onClick={(e) => handleItemClick(e, item, globalIndex)}
-                    onMouseEnter={() => !isMobile && handleItemHover(globalIndex)}
-                    onFocus={() => !isMobile && handleItemHover(globalIndex)}
+                    onClick={(e) => handleItemClick(e, section.header, headerIndex)}
+                    onMouseEnter={() => !isMobile && handleItemHover(headerIndex)}
+                    onFocus={() => !isMobile && handleItemHover(headerIndex)}
                     className={`
-										text-left transition-all duration-100 outline-none flex items-center 										${isSelected ? 'ring-2 ring-[var(--color-term-selection-border)] bg-[var(--color-term-selection)] px-2 -mx-2 rounded' : ''}
-										${visibleIndexSet.has(globalIndex) ? '' : 'hidden'}
-									`}
-                    style={{ color: item.color }}
+                      transition-all duration-100 outline-none font-medium shrink-0
+                      ${isHeaderSelected ? 'ring-2 ring-[var(--color-term-selection-border)] bg-[var(--color-term-selection)] px-2 -mx-2 rounded text-[var(--color-term-link)]' : 'text-[var(--color-term-link)] hover:text-[var(--color-term-purple)] hover:underline'}
+                      ${visibleIndexSet.has(headerIndex) ? '' : 'hidden'}
+                    `}
                     tabIndex={-1}
                   >
-                    {item.icon && <span className="mr-2 inline-flex">{item.icon}</span>}
-                    {item.name}
+                    {section.header.name}
                   </button>
-                )
-              })}
+                  <div className="flex flex-col gap-y-1">
+                    {section.items.map((item, idx) => {
+                      const globalIndex = itemStartIndex + idx
+                      const isSelected = selectedIndex === globalIndex
+                      return (
+                        <button
+                          type="button"
+                          key={item.url}
+                          onClick={(e) => handleItemClick(e, item, globalIndex)}
+                          onMouseEnter={() => !isMobile && handleItemHover(globalIndex)}
+                          onFocus={() => !isMobile && handleItemHover(globalIndex)}
+                          className={`
+                            text-left transition-all duration-100 outline-none flex items-center ${isSelected ? 'ring-2 ring-[var(--color-term-selection-border)] bg-[var(--color-term-selection)] px-2 -mx-2 rounded' : ''}
+                            ${visibleIndexSet.has(globalIndex) ? '' : 'hidden'}
+                          `}
+                          style={{ color: item.color }}
+                          tabIndex={-1}
+                        >
+                          {item.icon && <span className="mr-2 inline-flex">{item.icon}</span>}
+                          {item.name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                  <button
+                    type="button"
+                    onClick={(e) => handleItemClick(e, section.header, headerIndex)}
+                    onMouseEnter={() => !isMobile && handleItemHover(headerIndex)}
+                    onFocus={() => !isMobile && handleItemHover(headerIndex)}
+                    className={`
+                      transition-all duration-100 outline-none font-medium
+                      ${isHeaderSelected ? 'ring-2 ring-[var(--color-term-selection-border)] bg-[var(--color-term-selection)] px-2 -mx-2 rounded text-[var(--color-term-link)]' : 'text-[var(--color-term-link)] hover:text-[var(--color-term-purple)] hover:underline'}
+                      ${visibleIndexSet.has(headerIndex) ? '' : 'hidden'}
+                    `}
+                    tabIndex={-1}
+                  >
+                    {section.header.name}
+                  </button>
+                  {section.items.map((item, idx) => {
+                    const globalIndex = itemStartIndex + idx
+                    const isSelected = selectedIndex === globalIndex
+                    return (
+                      <button
+                        type="button"
+                        key={item.url || item.name}
+                        onClick={(e) => handleItemClick(e, item, globalIndex)}
+                        onMouseEnter={() => !isMobile && handleItemHover(globalIndex)}
+                        onFocus={() => !isMobile && handleItemHover(globalIndex)}
+                        className={`
+                          text-left transition-all duration-100 outline-none flex items-center
+                          ${isSelected ? 'ring-2 ring-[var(--color-term-selection-border)] bg-[var(--color-term-selection)] px-2 -mx-2 rounded' : ''}
+                          ${visibleIndexSet.has(globalIndex) ? '' : 'hidden'}
+                        `}
+                        style={{ color: item.color }}
+                        tabIndex={-1}
+                      >
+                        {item.icon && <span className="mr-2 inline-flex">{item.icon}</span>}
+                        {item.name}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
             </div>
-          </div>
-        </div>
-
-        {/* Socials section */}
-        <div
-          className={
-            visibleIndexSet.has(1 + pinned.length + 1 + blogItems.length) ? 'mb-6' : 'hidden'
-          }
-        >
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-            {(() => {
-              const headerIndex = 1 + pinned.length + 1 + blogItems.length // socials/ header index
-              const isHeaderSelected = selectedIndex === headerIndex
-              return (
-                <button
-                  type="button"
-                  onClick={(e) => handleItemClick(e, sectionHeaders[2], headerIndex)}
-                  onMouseEnter={() => !isMobile && handleItemHover(headerIndex)}
-                  onFocus={() => !isMobile && handleItemHover(headerIndex)}
-                  className={`
-									transition-all duration-100 outline-none font-medium
-									${isHeaderSelected ? 'ring-2 ring-[var(--color-term-selection-border)] bg-[var(--color-term-selection)] px-2 -mx-2 rounded text-[var(--color-term-link)]' : 'text-[var(--color-term-link)] hover:text-[var(--color-term-purple)] hover:underline'}
-									${visibleIndexSet.has(headerIndex) ? '' : 'hidden'}
-								`}
-                  tabIndex={-1}
-                >
-                  socials/
-                </button>
-              )
-            })()}
-            {socialLinks.map((item, idx) => {
-              const globalIndex = 1 + pinned.length + 1 + blogItems.length + 1 + idx // after pinned + blog section + socials header
-              const isSelected = selectedIndex === globalIndex
-              return (
-                <button
-                  type="button"
-                  key={item.name}
-                  onClick={(e) => handleItemClick(e, item, globalIndex)}
-                  onMouseEnter={() => !isMobile && handleItemHover(globalIndex)}
-                  onFocus={() => !isMobile && handleItemHover(globalIndex)}
-                  className={`
-									text-left transition-all duration-100 outline-none flex items-center
-									${isSelected ? 'ring-2 ring-[var(--color-term-selection-border)] bg-[var(--color-term-selection)] px-2 -mx-2 rounded' : ''}
-									${visibleIndexSet.has(globalIndex) ? '' : 'hidden'}
-								`}
-                  style={{ color: item.color }}
-                  tabIndex={-1}
-                >
-                  {item.icon && <span className="mr-2 inline-flex">{item.icon}</span>}
-                  {item.name}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Apps section */}
-        <div
-          className={
-            visibleIndexSet.has(1 + pinned.length + 1 + blogItems.length + 1 + socialLinks.length)
-              ? 'mb-6'
-              : 'hidden'
-          }
-        >
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-            {(() => {
-              const headerIndex = 1 + pinned.length + 1 + blogItems.length + 1 + socialLinks.length // apps/ header index
-              const isHeaderSelected = selectedIndex === headerIndex
-              return (
-                <button
-                  type="button"
-                  onClick={(e) => handleItemClick(e, sectionHeaders[3], headerIndex)}
-                  onMouseEnter={() => !isMobile && handleItemHover(headerIndex)}
-                  onFocus={() => !isMobile && handleItemHover(headerIndex)}
-                  className={`
-									transition-all duration-100 outline-none font-medium
-									${isHeaderSelected ? 'ring-2 ring-[var(--color-term-selection-border)] bg-[var(--color-term-selection)] px-2 -mx-2 rounded text-[var(--color-term-link)]' : 'text-[var(--color-term-link)] hover:text-[var(--color-term-purple)] hover:underline'}
-									${visibleIndexSet.has(headerIndex) ? '' : 'hidden'}
-								`}
-                  tabIndex={-1}
-                >
-                  apps/
-                </button>
-              )
-            })()}
-            {apps.map((item, idx) => {
-              const globalIndex =
-                1 + pinned.length + 1 + blogItems.length + 1 + socialLinks.length + 1 + idx
-              const isSelected = selectedIndex === globalIndex
-              return (
-                <button
-                  type="button"
-                  key={item.name}
-                  onClick={(e) => handleItemClick(e, item, globalIndex)}
-                  onMouseEnter={() => !isMobile && handleItemHover(globalIndex)}
-                  onFocus={() => !isMobile && handleItemHover(globalIndex)}
-                  className={`
-									text-left transition-all duration-100 outline-none flex items-center
-									${isSelected ? 'ring-2 ring-[var(--color-term-selection-border)] bg-[var(--color-term-selection)] px-2 -mx-2 rounded' : ''}
-									${visibleIndexSet.has(globalIndex) ? '' : 'hidden'}
-								`}
-                  style={{ color: item.color }}
-                  tabIndex={-1}
-                >
-                  {item.icon && <span className="mr-2 inline-flex">{item.icon}</span>}
-                  {item.name}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Repos section */}
-        <div
-          className={
-            visibleIndexSet.has(
-              1 + pinned.length + 1 + blogItems.length + 1 + socialLinks.length + 1 + apps.length,
-            )
-              ? 'mb-6'
-              : 'hidden'
-          }
-        >
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-            {(() => {
-              const headerIndex =
-                1 + pinned.length + 1 + blogItems.length + 1 + socialLinks.length + 1 + apps.length
-              const isHeaderSelected = selectedIndex === headerIndex
-              return (
-                <button
-                  type="button"
-                  onClick={(e) => handleItemClick(e, sectionHeaders[4], headerIndex)}
-                  onMouseEnter={() => !isMobile && handleItemHover(headerIndex)}
-                  onFocus={() => !isMobile && handleItemHover(headerIndex)}
-                  className={`
-									transition-all duration-100 outline-none font-medium
-									${isHeaderSelected ? 'ring-2 ring-[var(--color-term-selection-border)] bg-[var(--color-term-selection)] px-2 -mx-2 rounded text-[var(--color-term-link)]' : 'text-[var(--color-term-link)] hover:text-[var(--color-term-purple)] hover:underline'}
-									${visibleIndexSet.has(headerIndex) ? '' : 'hidden'}
-								`}
-                  tabIndex={-1}
-                >
-                  repos/
-                </button>
-              )
-            })()}
-            {repos.map((item, idx) => {
-              const globalIndex =
-                1 +
-                pinned.length +
-                1 +
-                blogItems.length +
-                1 +
-                socialLinks.length +
-                1 +
-                apps.length +
-                1 +
-                idx
-              const isSelected = selectedIndex === globalIndex
-              return (
-                <button
-                  type="button"
-                  key={item.name}
-                  onClick={(e) => handleItemClick(e, item, globalIndex)}
-                  onMouseEnter={() => !isMobile && handleItemHover(globalIndex)}
-                  onFocus={() => !isMobile && handleItemHover(globalIndex)}
-                  className={`
-									text-left transition-all duration-100 outline-none flex items-center
-									${isSelected ? 'ring-2 ring-[var(--color-term-selection-border)] bg-[var(--color-term-selection)] px-2 -mx-2 rounded' : ''}
-									${visibleIndexSet.has(globalIndex) ? '' : 'hidden'}
-								`}
-                  style={{ color: item.color }}
-                  tabIndex={-1}
-                >
-                  {item.icon && <span className="mr-2 inline-flex">{item.icon}</span>}
-                  {item.name}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Misc section */}
-        <div
-          className={
-            visibleIndexSet.has(
-              1 +
-                pinned.length +
-                1 +
-                blogItems.length +
-                1 +
-                socialLinks.length +
-                1 +
-                apps.length +
-                1 +
-                repos.length,
-            )
-              ? 'mb-8'
-              : 'hidden'
-          }
-        >
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-            {(() => {
-              const headerIndex =
-                1 +
-                pinned.length +
-                1 +
-                blogItems.length +
-                1 +
-                socialLinks.length +
-                1 +
-                apps.length +
-                1 +
-                repos.length
-              const isHeaderSelected = selectedIndex === headerIndex
-              return (
-                <button
-                  type="button"
-                  onClick={(e) => handleItemClick(e, sectionHeaders[5], headerIndex)}
-                  onMouseEnter={() => !isMobile && handleItemHover(headerIndex)}
-                  onFocus={() => !isMobile && handleItemHover(headerIndex)}
-                  className={`
-									transition-all duration-100 outline-none font-medium
-									${isHeaderSelected ? 'ring-2 ring-[var(--color-term-selection-border)] bg-[var(--color-term-selection)] px-2 -mx-2 rounded text-[var(--color-term-link)]' : 'text-[var(--color-term-link)] hover:text-[var(--color-term-purple)] hover:underline'}
-									${visibleIndexSet.has(headerIndex) ? '' : 'hidden'}
-								`}
-                  tabIndex={-1}
-                >
-                  misc/
-                </button>
-              )
-            })()}
-            {misc.map((item, idx) => {
-              const globalIndex =
-                1 +
-                pinned.length +
-                1 +
-                blogItems.length +
-                1 +
-                socialLinks.length +
-                1 +
-                apps.length +
-                1 +
-                repos.length +
-                1 +
-                idx
-              const isSelected = selectedIndex === globalIndex
-              return (
-                <button
-                  type="button"
-                  key={item.name}
-                  onClick={(e) => handleItemClick(e, item, globalIndex)}
-                  onMouseEnter={() => !isMobile && handleItemHover(globalIndex)}
-                  onFocus={() => !isMobile && handleItemHover(globalIndex)}
-                  className={`
-									text-left transition-all duration-100 outline-none flex items-center
-									${isSelected ? 'ring-2 ring-[var(--color-term-selection-border)] bg-[var(--color-term-selection)] px-2 -mx-2 rounded' : ''}
-									${visibleIndexSet.has(globalIndex) ? '' : 'hidden'}
-								`}
-                  style={{ color: item.color }}
-                  tabIndex={-1}
-                >
-                  {item.icon && <span className="mr-2 inline-flex">{item.icon}</span>}
-                  {item.name}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Description */}
+          )
+        })}
         {normalizedSearchQuery && filteredIndices.length === 0 && (
           <div className="mt-4 text-[var(--color-term-fg-muted)] text-sm">
             No matches. Press Esc to clear.
